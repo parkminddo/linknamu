@@ -9,6 +9,19 @@ const config: Config = {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          '"Pretendard Variable"',
+          "Pretendard",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "system-ui",
+          '"Apple SD Gothic Neo"',
+          '"Noto Sans KR"',
+          '"Malgun Gothic"',
+          "sans-serif",
+        ],
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",

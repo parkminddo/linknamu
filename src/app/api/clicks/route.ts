@@ -6,14 +6,27 @@ export const dynamic = "force-dynamic";
 
 const linkIds = new Set(profile.links.map((link) => link.id));
 
-export async function GET() {
-  const clicks = await getClicksCollection();
-  if (!clicks) return NextResponse.json({});
+const dbUnavailable = (error: unknown) => {
+  console.error("[clicks] MongoDB 연결 실패:", error);
+  return NextResponse.json({ error: "database unavailable" }, { status: 503 });
+};
 
-  const docs = await clicks.find().toArray();
-  return NextResponse.json(
-    Object.fromEntries(docs.map((doc) => [doc._id, doc.count])),
+// 링크별 클릭 수. 아직 한 번도 눌리지 않은 링크는 0으로 채운다
+export async function GET() {
+  const counts: Record<string, number> = Object.fromEntries(
+    profile.links.map((link) => [link.id, 0]),
   );
+
+  try {
+    const clicks = await getClicksCollection();
+    if (!clicks) return NextResponse.json(counts);
+
+    const docs = await clicks.find({ _id: { $in: Array.from(linkIds) } }).toArray();
+    for (const doc of docs) counts[doc._id] = doc.count;
+    return NextResponse.json(counts);
+  } catch (error) {
+    return dbUnavailable(error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -22,11 +35,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unknown link" }, { status: 400 });
   }
 
-  const clicks = await getClicksCollection();
-  if (!clicks) {
-    return NextResponse.json({ error: "MONGODB_URI not set" }, { status: 503 });
-  }
+  try {
+    const clicks = await getClicksCollection();
+    if (!clicks) {
+      return NextResponse.json({ error: "MONGODB_URI not set" }, { status: 503 });
+    }
 
-  await clicks.updateOne({ _id: id }, { $inc: { count: 1 } }, { upsert: true });
-  return NextResponse.json({ ok: true });
+    await clicks.updateOne({ _id: id }, { $inc: { count: 1 } }, { upsert: true });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return dbUnavailable(error);
+  }
 }

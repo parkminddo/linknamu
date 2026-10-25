@@ -3,13 +3,19 @@
 import Image from "next/image";
 import type { LinkItem } from "@/data/profile";
 
-export default function LinkCard({ id, title, url, icon }: LinkItem) {
+type LinkCardProps = LinkItem & {
+  count: number;
+  onClick?: () => void;
+};
+
+export default function LinkCard({ id, title, url, icon, count, onClick }: LinkCardProps) {
   // sendBeacon은 페이지를 떠나도 요청이 끝까지 전송된다
   const recordClick = () => {
     const body = new Blob([JSON.stringify({ id })], {
       type: "application/json",
     });
     navigator.sendBeacon("/api/clicks", body);
+    onClick?.();
   };
 
   return (
@@ -31,6 +37,9 @@ export default function LinkCard({ id, title, url, icon }: LinkItem) {
         />
       )}
       {title}
+      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-medium tabular-nums text-stone-500 dark:text-stone-400">
+        {count.toLocaleString("ko-KR")}회
+      </span>
     </a>
   );
 }

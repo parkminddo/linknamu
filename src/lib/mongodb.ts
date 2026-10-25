@@ -11,7 +11,16 @@ declare global {
 export function getMongoClient(): Promise<MongoClient> | null {
   if (!uri) return null;
   if (!global._mongoClientPromise) {
-    global._mongoClientPromise = new MongoClient(uri).connect();
+    // 연결이 막혔을 때 30초씩 붙잡지 않도록 대기 시간을 줄인다
+    global._mongoClientPromise = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 5000,
+    })
+      .connect()
+      .catch((error) => {
+        // 실패한 연결을 캐시에 남기면 서버를 재시작할 때까지 계속 실패하므로 비운다
+        global._mongoClientPromise = undefined;
+        throw error;
+      });
   }
   return global._mongoClientPromise;
 }
